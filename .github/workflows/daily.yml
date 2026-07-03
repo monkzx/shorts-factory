@@ -1,0 +1,56 @@
+name: shorts-factory-daily
+
+on:
+  schedule:
+    - cron: "0 7 * * 1-5"
+  workflow_dispatch: {}
+
+jobs:
+  produce-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system packages (ffmpeg, ImageMagick, Impact font)
+        run: |
+          sudo apt-get update
+          echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+          sudo apt-get install -y ffmpeg imagemagick fonts-liberation ttf-mscorefonts-installer
+          sudo fc-cache -f
+          sudo sed -i 's/rights="none" pattern="@\*"/rights="read|write" pattern="@*"/' /etc/ImageMagick-6/policy.xml || true
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore Google credentials from Secrets
+        run: |
+          cat > client_secrets.json <<'JSON'
+          ${{ secrets.CLIENT_SECRETS_JSON }}
+          JSON
+          cat > token.json <<'JSON'
+          ${{ secrets.TOKEN_JSON }}
+          JSON
+
+      - name: Discover + download trending sources
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python sourcing.py --out ./raw --per-creator 1
+
+      - name: Render today's 5 shorts
+        run: >
+          python shorts_factory.py --single-day
+          --input-dir ./raw --output-dir ./out
+          --whisper-model small --font Impact
+
+      - name: Upload + schedule on YouTube
+        run: >
+          python publisher.py
+          --queue ./out/publication_queue.json
+          --date today --tz America/Sao_Paulo
