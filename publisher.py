@@ -79,7 +79,9 @@ def get_youtube_service(client_secrets: str, token_path: str, interactive: bool)
         creds = Credentials.from_authorized_user_file(token_path, SCOPES)
 
     if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
+        if creds and creds.refresh_token:
+            # A stored refresh_token (e.g. from OAuth Playground) may have no
+            # access token yet; refresh unconditionally to mint a fresh one.
             log.info("Refreshing OAuth token ...")
             creds.refresh(Request())
         else:
