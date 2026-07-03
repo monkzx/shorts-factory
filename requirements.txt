@@ -1,0 +1,12 @@
+# Shorts Factory — Python dependencies
+# Install with:  ./venv/bin/pip install -r requirements.txt
+moviepy==1.0.3
+opencv-python-headless==4.9.0.80
+numpy
+openai-whisper
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+yt-dlp
+# deep-translator   # optional — only if you need subtitle translation
+# NOTE: openai-whisper pulls in PyTorch (~2 GB). The server needs >= 40 GB disk.
